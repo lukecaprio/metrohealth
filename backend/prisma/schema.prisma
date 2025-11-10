@@ -1,0 +1,327 @@
+// Metro Health - Prisma Schema
+// Database schema for patient care system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  PATIENT
+  NURSE
+  PHYSICIAN
+  ADMIN
+}
+
+enum RequestType {
+  WATER
+  BLANKET
+  RESTROOM
+  PAIN_MEDICATION
+  NURSE
+  OTHER
+}
+
+enum RequestStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  ESCALATED
+  RESOLVED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum TestResultStatus {
+  NORMAL
+  ABNORMAL
+  PENDING
+  CRITICAL
+}
+
+enum PatientStatus {
+  ADMITTED
+  STABLE
+  CRITICAL
+  RECOVERING
+  DISCHARGED
+}
+
+// ============================================
+// CORE MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  patient          Patient?
+  staff            Staff?
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  auditLogs        AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Patient {
+  id          String        @id @default(uuid())
+  userId      String        @unique
+  roomNumber  String
+  status      PatientStatus @default(ADMITTED)
+  dateOfBirth DateTime?
+  gender      String?
+  bloodType   String?
+  allergies   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  nonUrgentRequests  NonUrgentRequest[]
+  vitals             Vital[]
+  alerts             Alert[]
+  testResults        TestResult[]
+  patientPreferences PatientPreference?
+
+  @@index([userId])
+  @@index([roomNumber])
+  @@index([status])
+}
+
+model Staff {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  department String
+  shift      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([userId])
+  @@index([department])
+}
+
+// ============================================
+// APPOINTMENTS & SCHEDULING
+// ============================================
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String
+  staffId     String
+  dateTime    DateTime
+  duration    Int               @default(30) // minutes
+  type        String // e.g., "Consultation", "Follow-up", "Procedure"
+  status      AppointmentStatus @default(SCHEDULED)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  staff   Staff   @relation(fields: [staffId], references: [id])
+
+  @@index([patientId])
+  @@index([staffId])
+  @@index([dateTime])
+  @@index([status])
+}
+
+// ============================================
+// PATIENT REQUESTS
+// ============================================
+
+model NonUrgentRequest {
+  id          String        @id @default(uuid())
+  patientId   String
+  type        RequestType
+  status      RequestStatus @default(QUEUED)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  processedAt DateTime?
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// VITALS & ALERTS
+// ============================================
+
+model Vital {
+  id             String   @id @default(uuid())
+  patientId      String
+  heartRate      Int?
+  bloodPressure  String? // e.g., "120/80"
+  temperature    Float?
+  oxygenLevel    Int?
+  respiratoryRate Int?
+  timestamp      DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([timestamp])
+}
+
+model Alert {
+  id             String        @id @default(uuid())
+  patientId      String
+  severity       AlertSeverity
+  status         AlertStatus   @default(ACTIVE)
+  reason         String
+  vitalsSnapshot Json? // Store snapshot of vitals at time of alert
+  acknowledgedBy String?
+  escalatedBy    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// TEST RESULTS
+// ============================================
+
+model TestResult {
+  id                  String           @id @default(uuid())
+  patientId           String
+  name                String // e.g., "Blood Test", "X-Ray"
+  date                DateTime
+  status              TestResultStatus
+  summary             String // Short summary for list view
+  detailedExplanation String           @db.Text // Plain language detailed explanation
+  rawData             Json? // Optional: store actual test values
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([status])
+  @@index([date])
+}
+
+// ============================================
+// MESSAGING
+// ============================================
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  subject    String?
+  content    String   @db.Text
+  threadId   String? // For grouping messages in conversations
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([threadId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// PREFERENCES & SETTINGS
+// ============================================
+
+model PatientPreference {
+  id                 String   @id @default(uuid())
+  patientId          String   @unique
+  language           String   @default("en")
+  notifications      Boolean  @default(true)
+  dietaryRestrictions String?
+  preferences        Json? // Store additional preferences as JSON
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+}
+
+// ============================================
+// AUDIT & LOGGING
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String // e.g., "LOGIN", "UPDATE_PATIENT", "VIEW_TEST_RESULT"
+  entityType String? // e.g., "Patient", "Appointment"
+  entityId   String?
+  metadata   Json? // Additional context
+  ipAddress  String?
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([entityType, entityId])
+}
+

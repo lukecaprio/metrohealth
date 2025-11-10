@@ -1,0 +1,2 @@
+2. Dashboard Screen
+The dashboard screen should display the name of the employee, alert list, patient list, and request list. The employee should be able to click the alerts, patients, or requests to see details

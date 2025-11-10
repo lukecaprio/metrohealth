@@ -1,0 +1,2 @@
+6. Request List Screen
+The request list screen should display all the patient requests in the order they were placed including the patient's room number and request type. There should be a completed button that removes the request once clicked. 

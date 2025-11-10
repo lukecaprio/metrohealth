@@ -1,0 +1,387 @@
+﻿________________
+
+
+Job 1: Conceptual Architecture Joy
+Tasks:
+* Review different architectural styles to identify which conceptual architectures are suitable for the Metro Health project.
+
+Requirements:
+   * List and Map:
+
+      * Identify and list the conceptual architectures that fit the project.
+
+      * For each architecture, map the specific functional requirements or use cases from Assignment 2 that will be addressed.
+
+      * Provide a rationale for each architecture choice.
+
+         * Diagram:
+
+            * Create a simple diagram for each identified conceptual architecture showing how it integrates into the overall project.
+
+
+Conceptual Architecture styles that are suitable for the Metro Health project
+Layered Architecture ( N-Tier)
+            * Mapped Use Cases
+            * UC1: Submit Non-Urgent Request from Bedside Tablet
+            * There’s a separation between the tablet (UI layer),  the request being handled ( business logic), and the data being stored.
+            * UC3: Patient Views Test Results in Plain Language
+            * A patient’s raw medical data is accessed by the data access layer. The data enters the business logic layer which converts the data into patient friendly results. A patient can access their test results through the presentation later ( UI layer).
+            * UC4: Sync Vitals to EMR
+            * The data flow is structured through multiple integration layers.
+            * Rationale: The Layered architecture would be a good fit for the Metro Health Project since healthcare systems need a clear separation between the presentation layer , business logic layer and the data layer. These separations make the system easier to maintain and helps align the system with healthcare standards.
+
+
+Event-Driven Architecture
+            * Mapped Use Cases
+            * UC1: Submit Non-Urgent Request from Bedside Tablet
+            * The system can handle patients requests asynchronously and can send notifications once the requests are processed
+            * UC2: Intelligent Nurse Alert Escalation for Critical Vitals
+            * The system can use event based alerts to identify critical vitals and escalate them based on priority to the necessary staff members
+            * UC4: Sync Vitals to EMR
+            * The system sends patients vitals in real time and sync the vitals with the EMR
+            * Rationale: Event-Drive Architecture in healthcare systems allows for live responses to critical events and allows for different systems to work together while still processing asynchronously.
+
+
+Client-Server Architecture
+            * Mapped Use Cases
+            * UC1: Submit Non-Urgent Request from Bedside Tablet
+            * The patient's bedside tablet acts as the client and sends requests to the server to be processed
+            * UC2: Intelligent Nurse Alert Escalation for Critical Vitals
+            * The devices that monitor vitals act as the client and send patient data to the nurse alert server for escalation
+            * UC3: Patient Views Test Results in Plain Language
+            * The patient care portal acts as the clients and requests tests results from the results server
+            * UC4: Sync Vitals to EMR
+            * The devices that monitor the patients vitals acts as the clients and it submits the patients vitals to the EMR server to be synchronized
+            * Rationale: Client-Server architecture allows for a centralized data management and processing while the patients interface and logic server are kept separately. This helps with maintaining consistency.
+
+
+Pipes and Filters Architecture
+            * Mapped Use Cases
+            * UC2: Intelligent Nurse Alert Escalation for Critical Vitals
+            * An alert pipeline would filter vitals to determine priority and the order in which nurses should be escalated.
+            * UC3: Patient Views Test Results in Plain Language
+            * A translation pipeline would convert the patient’s raw data into test results that are understandable to the patient.
+            * UC4: Sync Vitals to EMR
+            * A data pipeline would filter and convert patients' vitals before sending them to the EMR to be synced.
+            * Rationale: Pipes and Filters architecture works well for healthcare systems that require data to constantly be transformed and systems that process multiple components.
+
+
+Diagrams
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+________________
+
+
+Job 2: Cloud Architecture Luke 
+Tasks:
+            * Analyze the Metro Health project as a complete application to determine appropriate cloud architecture styles.
+
+Requirements:
+               * Specification and Justification:
+
+                  * Specify which cloud architectural styles are best suited for Metro Health’s application.
+
+                  * Justify each choice based on scalability, security, cost-efficiency, and integration with existing hospital systems.
+
+________________
+
+
+Job 3: Database Design Blaise 
+Tasks:
+                     * Understand cloud storage and define the transactional and user data aspects of Metro Health’s application.
+
+Requirements:
+                        * Transactions:
+
+                           * Define what a transaction is within Metro Health’s application (e.g., appointment bookings, medical record updates).
+
+                           * Provide an example of transaction data and explain how it will be stored.
+
+                           * Discuss the type of database (relational, NoSQL, etc.) best for these transactions and justify your choice.
+
+                              * User Data:
+
+                                 * Describe the user data that the application will manage (e.g., patient profiles, staff information).
+
+                                 * Offer a sample structure of user data and detail the storage solution.
+
+                                 * Choose a database type for user data and explain your selection based on data complexity, access patterns, and security needs.
+
+________________
+
+
+Job 4: Report Compilation and Formatting - Luca
+Tasks:
+                                    * Combine all sections (Conceptual Architecture, Cloud Architecture, and Database Design) into one professional report for submission.
+
+Requirements: 
+                                       * Formatting and Presentation:
+
+                                          * Include a title page and table of contents.
+
+                                          * Ensure each section is clearly labeled and professionally written for Metro Health’s board or executive team.
+
+                                          * Integrate all diagrams properly.
+
+                                          * Ensure external research (if used) is cited.
+
+                                          * Submit the report as a single PDF document.
+
+Evaluation Focus:
+                                             * Clarity and relevance of architectures.
+
+                                             * Depth of analysis and justification.
+
+                                             * Accuracy and creativity of diagrams.
+
+                                             * Understanding of database requirements.
+
+                                             * Professionalism and coherence of the final report.
+
+________________
+
+
+Would you like me to also format this division into a table (with job, assigned member, and deliverables columns) for team distribution?
+
+
+
+
+
+
+
+
+Design Principles
+The database architecture was developed according to core systems and object-oriented design principles emphasized in the course:
+                                                * Encapsulation and Modularity: Each data domain—patients, staff, alerts, appointments—is treated as a self-contained module, protecting internal structure while enabling standardized data access.
+
+                                                * Abstraction: The model simplifies complex medical and operational data into meaningful entities such as Patient, Encounter, and Alert.
+
+                                                * Hierarchy and Composition: Relationships between entities (e.g., User → Staff → Clinician) follow logical inheritance and composition patterns.
+
+                                                * Resilience and Scalability: Cloud infrastructure ensures rapid recovery, horizontal scaling, and continuous operation under high load.
+
+                                                * Separation of Concerns: The data layer operates independently from application logic, ensuring flexibility, maintainability, and reliability.
+
+3.3 Database Architecture
+Because Metro Health’s system manages both structured clinical data and unstructured patient interactions, a polyglot persistence strategy is adopted. Each data type is stored in the database environment best suited for its characteristics.
+                                                   1. Relational Database (Primary OLTP Layer)
+ The relational system—such as PostgreSQL or Azure SQL—serves as the authoritative source for structured records: patient demographics, appointments, encounters, medications, and audit logs. This model guarantees transactional integrity and consistency for all medical and administrative processes.
+
+                                                   2. Time-Series or Event Database (Streaming Data)
+ A specialized time-series store captures continuous clinical data such as heart rate, oxygen saturation, or alert events from bedside devices. This database supports real-time monitoring and historical trend analysis.
+
+                                                   3. Document Database (Patient Portal and Preferences)
+ Semi-structured data such as privacy settings, multilingual preferences, and accessibility configurations are stored in a document-oriented system. This allows flexibility as new interface or accessibility features are added without modifying core schema.
+
+                                                   4. Analytical Warehouse (Reporting and Insights)
+ A cloud data warehouse aggregates de-identified information for reporting, operations dashboards, and performance analytics. By isolating analytical queries, this layer prevents interference with transactional workloads.
+
+Together, these layers form a unified but specialized data ecosystem supporting both day-to-day clinical operations and long-term strategic analysis.
+Transactional Data Design
+Transactions represent the atomic activities that drive hospital operations. Each must be completed fully and accurately to maintain patient safety and data integrity.
+
+
+Example – Appointment Booking:
+
+When a patient or staff member schedules an appointment, the system validates clinician availability, reserves the slot, and records the encounter in one complete transaction. If any validation fails, all changes are rolled back automatically. This ensures no overlapping bookings and prevents inconsistent data.
+
+
+Example – Alert Acknowledgment:
+
+When a nurse acknowledges a clinical alert, the acknowledgment status updates in the relational system while a separate event entry records the action chronologically. This guarantees both an accurate current state and a traceable historical record for audits.
+These examples demonstrate the system’s reliance on ACID properties—Atomicity, Consistency, Isolation, and Durability—within the relational environment, supported by asynchronous event logging for scalability.
+User Data Design
+The system manages information for two main user groups: Patients and Staff. Each category has distinct data needs, privacy requirements, and security implications.
+Patient Information
+Patient data includes identifiers (such as a medical record number), demographic details, contact information, preferred language, and accessibility settings. Each patient record links to their encounters, appointments, and alerts. The design allows for multilingual support and customized accessibility options (e.g., font size, high-contrast displays), reflecting the project’s usability goals.
+
+
+Sensitive information, including health data and test results, is stored in encrypted form and accessed only through authenticated sessions. Patients can control data-sharing preferences, deciding whether family members or caregivers can view their records. These privacy settings are stored in flexible structures to accommodate evolving legal and personal requirements.
+Staff Information
+Staff data includes employment and credential details such as role, specialty, and department. Each staff member is associated with permissions defining what parts of the system they can access.
+
+
+Role-Based Access Control (RBAC) enforces the principle of least privilege: physicians can modify clinical data, nurses can update care notes and alerts, and administrative staff can view scheduling and billing information but not medical details. This design meets HIPAA security standards and minimizes risk of unauthorized access.
+Relationships Between Users and System Data
+
+
+Patients and staff interact through encounters, appointments, and alert responses. Each relationship is maintained through unique identifiers to preserve data integrity.
+
+
+For example:
+                                                      * An appointment links one patient to one clinician and one facility slot.
+
+                                                      * An encounter connects a patient’s hospitalization period with all relevant vitals and documentation.
+
+                                                      * An alert associates clinical data with the staff member who acknowledged it.
+
+By defining these relationships conceptually rather than in code, the design remains technology-agnostic and can be implemented on any relational platform.
+Implications of Design Choices
+                                                         * Security: Encryption and access controls protect Protected Health Information (PHI).
+
+                                                         * Scalability: Cloud replication enables support for hundreds of concurrent sessions without latency.
+
+                                                         * Compliance: Structured relationships and audit trails ensure full traceability for all user actions.
+
+                                                         * User Experience: Personalization and accessibility options promote patient satisfaction and adoption.
+
+This conceptual approach emphasizes the meaning and purpose of each entity rather than its syntax, consistent with the course’s focus on architecture over coding.
+Data Management and Cloud Storage
+The database ecosystem operates on a hybrid cloud model that balances on-premises control with the elasticity of cloud infrastructure.
+                                                            * Availability: Replicated databases across multiple availability zones guarantee near-continuous uptime.
+
+                                                            * Resiliency: Automated failover mechanisms restore service within thirty seconds of an outage.
+
+                                                            * Security: All data is encrypted in transit and at rest; periodic audits and penetration tests verify compliance.
+
+                                                            * Scalability: Auto-scaling and read replicas handle load surges during peak hospital activity.
+
+                                                            * Management: Continuous integration and delivery pipelines automate database configuration, updates, and monitoring.
+
+These mechanisms implement the quality pillars emphasized throughout the course: scalability, availability, resiliency, management, and security.
+Performance and Scalability
+To meet the requirement that most system responses occur within two seconds, the design employs:
+                                                               * Efficient indexing and query optimization for high-volume tables.
+
+                                                               * Caching for frequently accessed patient-portal information.
+
+                                                               * Asynchronous background processes for non-critical updates, such as feedback submission.
+
+                                                               * Data partitioning by facility to distribute load evenly across the network.
+
+By designing for failure rather than attempting to avoid it, the system can continue operating even when individual nodes or services experience disruptions.
+Governance and Lifecycle Management
+Long-term governance ensures that data integrity and compliance are sustained beyond deployment.
+                                                                  * Schema Evolution: Controlled versioning allows safe adaptation as requirements evolve.
+
+                                                                  * Auditing and Monitoring: Comprehensive logs capture every access and change, forming the foundation for compliance reviews.
+
+                                                                  * Data Retention: Automatic lifecycle policies archive or delete data according to legal and organizational standards.
+
+                                                                  * Disaster Recovery: Quarterly recovery drills validate the effectiveness of backup and restoration procedures.
+
+These operational controls demonstrate mature database management practices consistent with cloud operations and DevOps principles.
+Alignment with System Requirements
+Requirement Category
+	Supported by Database Design
+	Functional ( FR-01 → FR-10 )
+	Databases support patient portals, alerts, clinical integration, training modules, and reporting.
+	Performance ( NFR-01 )
+	Optimized structure and caching achieve sub-two-second responses.
+	Reliability ( NFR-03 → NFR-04 )
+	Replication and failover meet the required availability metrics.
+	Security ( NFR-05 → NFR-07 )
+	Encryption, RBAC, and access controls uphold HIPAA compliance.
+	Usability ( NFR-08 → NFR-09 )
+	Multilingual and accessible patient data design enhances user experience.
+	Safety ( NFR-10 → NFR-11 )
+	Audit trails and documented backup workflows protect patient safety.
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+____________________________________________________________________________
+-cloud architecture overview section, section 2 - luke
+Cloud Architecture Overview
+This section examines several cloud architecture styles that are most suitable for the Metro Health Smart Patient Care Management System. To provide better context, each architecture is applied to a specific use case within the system to demonstrate how different cloud design patterns can enhance functionality and performance. Each choice is also justified based on scalability, security, cost-efficiency, and integration with existing hospital systems. The following cloud architecture styles are discussed. 
+                                                                     1. Web-Queue-Worker Architecture 
+                                                                     2. Microservices Architecture Style
+                                                                     3. N-Tier Architecture 
+
+
+                                                                     1. Web-Queue-Worker Architecture 
+Where to Apply Web-Queue-Worker Architecture:
+Use Case: Non-Urgent Request Orchestrator
+Web-Queue-Worker Architecture works perfectly for the non-urgent request orchestrator because requests like asking for water or a blanket don’t need an instant response. Instead they will be added to a queue that lets the system handle many requests at once without becoming overflowed. The requests will be placed, then processed as staff become available which is perfect for non urgent requests. 
+Justification:
+Scalability: 
+The queue allows the system to absorb large surges of patient requests at once without slowing down or crashing the system, while workers can scale independently to handle the demand during high activity periods. 
+Security: 
+Requests in the queue will only contain the reference IDs and only authenticated workers can access or process the requests. Any sensitive patient data will stay in the hospital's main database rather than the queue which will reduce security risk. 
+Cost-Efficiency:
+Since the patient requests will be organized in a queue, nurses won’t be as overwhelmed by sudden surges of requests, which will in turn let them work more efficiently and focus more on patient care. This will reduce wasted time, resources and costs, as well as reduce staff strain. 
+Integration with existing hospital systems:
+The queue can be forwarded and uploaded to show pending and completed patient requests to existing hospital systems like staff dashboards. The queue will be shown independently of the EMR so it keeps staff updated without altering any records. 
+
+
+                                                                     2. Microservices Architecture Style
+Where to Apply Microservices Architecture:
+Use Case: Intelligent Nurse Alert Escalation for Critical Vitals
+The Microservices Architecture style is ideal for the alert escalation system because it allows each part of the process to exist as its own independent service. 
+Proposed Independent Services:
+                                                                     * Vitals Ingestion service: authenticates devices, normalizes readings
+                                                                     * Alerting service: applies rules, creates alerts, manages timers and escalation
+                                                                     * Notification service: delivers alerts to the nurses and records acknowledgements
+                                                                     * EMR Integration service: updates the EMR
+All of these services will run independently of each other and will be self contained. The clients and staff apps enter through the API Gateway. Since each microservice runs independently, if one service, like EMR Integration, goes down, the others like Vitals Ingestion or Alerting will remain operating as normal. This prevents a single point of failure in the system which is crucial for vitals, and also allows for faster recovery and maintenance. 
+Scalability: 
+Each independent service scales independently, so sudden spikes of data will not slow the rest of the system. You can also continue to expand and add new services without disrupting the other services. 
+Security:
+The API Gateway will centralize authentication and authorization which allows for safe and secure exchange of sensitive patient data.  
+Cost-Efficiency:
+Only crucial services like vital ingestion and critical alerts will scale during peak activity while the other services will operate as normal. This reduces operational costs and unnecessary scaling. 
+Integration with existing hospital systems:
+As stated in the proposed independent services, this architecture will have an EMR integration service. This will allow for patients’ EMRs to get updated without affecting other system components.
+                                                                     3. N-Tier Architecture 
+Where to Apply N-Tier Architecture:
+Use Case: Patient Portal (FR-01, FR-02, FR-03):
+The patient portal maps perfectly to the N-tier application architecture style. It is a good fit because it provides a clear separation of layers which will help maintainability and performance. A closed layer architecture will be used to enforce privacy and business rules. 
+Mapped Out: it can be separated into the following tiers
+                                                                     * Presentation tier: Bedside tablet/web UI for multilingual views and accessibility
+                                                                     * Web/API tier: handles authentication and request routing
+                                                                     * Middle Tier: business logic, formatting to plain language
+                                                                     * Data tier: portal state
+Each tier will operate independently of each other but will communicate through secure pathways. Because each tier can be updated separately it will be easy to add functional requirements like new languages, accessibility features and learning features without disrupting the entire system. 
+Justification:
+Scalability
+Each layer of the N-Tier design can scale independently, so an increase in portal users will not slow down other hospital systems. The web and middle tiers can be expanded during high patient activity hours without changing the underlying data tier.
+Security
+All data requests must go through the web tier which will act as a secure gateway for authentication and protection of sensitive patient data. 
+
+Cost-Efficiency
+Since the portal’s layers operate separately, the hospital only needs to scale the layers that are experiencing high demand which will reduce costs and avoid wasting resources. 
+Integration with Existing Hospital Systems
+The middle tier will connect directly to the EMR through APIs which allows for access to patient data and test results. The portal will show real time information and updates without disrupting other services. 
+
+____________________________________________________________________________

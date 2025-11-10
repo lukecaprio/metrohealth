@@ -1,0 +1,3 @@
+4. Test Results Screen
+The test results screen should present a list of the patients tests with dates,
+showing if the status of the result is normal or abnormal(red for abnormal). The patient can press the status to see details of their result in plain language.
