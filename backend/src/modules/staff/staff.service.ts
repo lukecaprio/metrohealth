@@ -140,9 +140,7 @@ export class StaffService {
   // ==================== PATIENT LIST ====================
   async getPatients() {
     const patients = await this.prisma.patient.findMany({
-      where: {
-        status: { in: ['ADMITTED', 'STABLE', 'CRITICAL', 'RECOVERING'] },
-      },
+      // Include all patients regardless of status (new patients might have different statuses)
       include: {
         user: {
           select: {
@@ -160,9 +158,9 @@ export class StaffService {
 
     return patients.map((patient) => ({
       id: patient.id,
-      name: patient.user.name,
-      email: patient.user.email,
-      roomNumber: patient.roomNumber,
+      name: patient.user?.name || 'Unknown Patient',
+      email: patient.user?.email || 'N/A',
+      roomNumber: patient.roomNumber || 'N/A',
       status: patient.status,
       latestVitals: patient.vitals[0] || null,
     }));
@@ -524,18 +522,39 @@ export class StaffService {
         receiverId: patient.userId,
         subject: messageDto.subject,
         content: messageDto.content,
+        threadId: null,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
       },
     });
 
-    // Audit log
-    await this.prisma.auditLog.create({
-      data: {
-        userId,
-        action: 'SEND_MESSAGE',
-        entityType: 'Message',
-        entityId: message.id,
-      },
-    });
+    // Audit log - wrap in try-catch to prevent failure from blocking message creation
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'SEND_MESSAGE',
+          entityType: 'Message',
+          entityId: message.id,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create audit log for message:', error);
+    }
 
     return message;
   }
@@ -567,7 +586,37 @@ export class StaffService {
         content: replyDto.content,
         threadId,
       },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
     });
+
+    // Audit log - wrap in try-catch to prevent failure from blocking message creation
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'REPLY_MESSAGE',
+          entityType: 'Message',
+          entityId: reply.id,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create audit log for reply:', error);
+    }
 
     return reply;
   }

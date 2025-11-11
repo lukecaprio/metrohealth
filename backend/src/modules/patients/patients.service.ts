@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../infra/db/prisma.service';
 import { CreateRequestDto, CreateMessageDto, ReplyMessageDto } from './dto/patient.dto';
 import { Role } from '@prisma/client';
@@ -92,7 +92,7 @@ export class PatientsService {
             id: nextAppointment.id,
             dateTime: nextAppointment.dateTime,
             type: nextAppointment.type,
-            doctorName: nextAppointment.staff.user.name,
+            doctorName: nextAppointment.staff?.user?.name || 'TBD',
             status: nextAppointment.status,
           }
         : null,
@@ -212,11 +212,17 @@ export class PatientsService {
       type: apt.type,
       status: apt.status,
       notes: apt.notes,
-      doctor: {
-        name: apt.staff.user.name,
-        role: apt.staff.user.role,
-        department: apt.staff.department,
-      },
+      doctor: apt.staff?.user
+        ? {
+            name: apt.staff.user.name,
+            role: apt.staff.user.role,
+            department: apt.staff.department || 'General',
+          }
+        : {
+            name: 'TBD',
+            role: 'NURSE',
+            department: 'General',
+          },
     }));
   }
 
@@ -285,6 +291,13 @@ export class PatientsService {
             role: true,
           },
         },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -327,44 +340,117 @@ export class PatientsService {
   }
 
   async createMessage(userId: string, createMessageDto: CreateMessageDto) {
-    // If no specific receiver, send to first available staff
-    let receiverId = createMessageDto.receiverId;
+    try {
+      // Validate content
+      if (!createMessageDto.content || createMessageDto.content.trim().length === 0) {
+        throw new BadRequestException('Message content is required');
+      }
 
-    if (!receiverId) {
-      const staff = await this.prisma.user.findFirst({
-        where: {
-          role: { in: [Role.NURSE, Role.PHYSICIAN, Role.ADMIN] },
+      // If no specific receiver, send to first available staff
+      let receiverId = createMessageDto.receiverId;
+
+      if (!receiverId) {
+        const staff = await this.prisma.user.findFirst({
+          where: {
+            role: { in: [Role.NURSE, Role.PHYSICIAN, Role.ADMIN] },
+          },
+        });
+
+        if (!staff) {
+          throw new NotFoundException('No staff available to receive messages');
+        }
+
+        receiverId = staff.id;
+      } else {
+        // The receiverId might be a staff ID (from getAvailableStaff) or a user ID
+        // Try to find it as a staff ID first, then fall back to user ID
+        const staffMember = await this.prisma.staff.findUnique({
+          where: { id: receiverId },
+          include: { user: true },
+        });
+
+        if (staffMember) {
+          // It's a staff ID, use the associated user ID
+          receiverId = staffMember.userId;
+        }
+        // If not found as staff, assume it's already a user ID and continue
+      }
+
+      // Verify receiver exists (as a user)
+      const receiver = await this.prisma.user.findUnique({
+        where: { id: receiverId },
+      });
+
+      if (!receiver) {
+        throw new NotFoundException(`Receiver with ID ${receiverId} not found`);
+      }
+
+      // Verify sender exists
+      const sender = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!sender) {
+        throw new NotFoundException(`Sender with ID ${userId} not found`);
+      }
+
+      // Ensure sender and receiver are different
+      if (sender.id === receiver.id) {
+        throw new BadRequestException('Cannot send message to yourself');
+      }
+
+      const message = await this.prisma.message.create({
+        data: {
+          senderId: userId,
+          receiverId,
+          subject: createMessageDto.subject || null,
+          content: createMessageDto.content.trim(),
+          threadId: null,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+          receiver: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
         },
       });
 
-      if (!staff) {
-        throw new NotFoundException('No staff available to receive messages');
+      // Audit log - wrap in try-catch to prevent failure from blocking message creation
+      try {
+        await this.prisma.auditLog.create({
+          data: {
+            userId,
+            action: 'SEND_MESSAGE',
+            entityType: 'Message',
+            entityId: message.id,
+          },
+        });
+      } catch (error) {
+        // Log error but don't fail the message creation
+        console.error('Failed to create audit log for message:', error);
       }
 
-      receiverId = staff.id;
-    }
-
-    const message = await this.prisma.message.create({
-      data: {
-        senderId: userId,
-        receiverId,
-        subject: createMessageDto.subject,
-        content: createMessageDto.content,
-        threadId: null,
-      },
-    });
-
-    // Audit log
-    await this.prisma.auditLog.create({
-      data: {
+      return message;
+    } catch (error) {
+      console.error('Error creating message:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         userId,
-        action: 'SEND_MESSAGE',
-        entityType: 'Message',
-        entityId: message.id,
-      },
-    });
-
-    return message;
+        receiverId: createMessageDto.receiverId,
+        contentLength: createMessageDto.content?.length,
+      });
+      throw error;
+    }
   }
 
   async replyToMessage(userId: string, messageId: string, replyDto: ReplyMessageDto) {
@@ -394,7 +480,38 @@ export class PatientsService {
         content: replyDto.content,
         threadId,
       },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
     });
+
+    // Audit log - wrap in try-catch to prevent failure from blocking message creation
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'REPLY_MESSAGE',
+          entityType: 'Message',
+          entityId: reply.id,
+        },
+      });
+    } catch (error) {
+      // Log error but don't fail the message creation
+      console.error('Failed to create audit log for reply:', error);
+    }
 
     return reply;
   }

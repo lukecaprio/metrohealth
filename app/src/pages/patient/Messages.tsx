@@ -20,6 +20,9 @@ const Messages: React.FC = () => {
   const { data: messages, isLoading } = useQuery({
     queryKey: ['messages'],
     queryFn: patientApi.getMessages,
+    staleTime: 0, // Always consider data stale for real-time updates
+    refetchInterval: 5000, // Refetch every 5 seconds to get new messages
+    refetchOnWindowFocus: true, // Refetch when user returns to the tab
   });
 
   const { data: availableStaff, isLoading: staffLoading } = useQuery({
@@ -30,8 +33,9 @@ const Messages: React.FC = () => {
 
   const sendMutation = useMutation({
     mutationFn: (data: { subject?: string; content: string; receiverId?: string }) => patientApi.sendMessage(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    onSuccess: async () => {
+      // Force immediate refetch instead of just invalidating
+      await queryClient.refetchQueries({ queryKey: ['messages'] });
       setShowCompose(false);
       setSubject('');
       setContent('');
@@ -42,8 +46,9 @@ const Messages: React.FC = () => {
   const replyMutation = useMutation({
     mutationFn: ({ messageId, content }: { messageId: string; content: string }) => 
       patientApi.replyToMessage(messageId, content),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    onSuccess: async () => {
+      // Force immediate refetch instead of just invalidating
+      await queryClient.refetchQueries({ queryKey: ['messages'] });
       setReplyContent({});
       setExpandedMessageId(null);
     },

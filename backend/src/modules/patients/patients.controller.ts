@@ -71,11 +71,7 @@ export class PatientsController {
     return this.patientsService.getAvailableStaff();
   }
 
-  @Post('me/messages')
-  async createMessage(@CurrentUser() user: any, @Body() createMessageDto: CreateMessageDto) {
-    return this.patientsService.createMessage(user.id, createMessageDto);
-  }
-
+  // Put reply route BEFORE the general messages POST route to avoid route conflicts
   @Post('me/messages/:id/reply')
   async replyToMessage(
     @CurrentUser() user: any,
@@ -83,6 +79,11 @@ export class PatientsController {
     @Body() replyDto: ReplyMessageDto,
   ) {
     return this.patientsService.replyToMessage(user.id, messageId, replyDto);
+  }
+
+  @Post('me/messages')
+  async createMessage(@CurrentUser() user: any, @Body() createMessageDto: CreateMessageDto) {
+    return this.patientsService.createMessage(user.id, createMessageDto);
   }
 }
 

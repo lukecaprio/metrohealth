@@ -28,10 +28,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
+      // Don't redirect if we're already on a login page (let the component handle the error)
+      const currentPath = window.location.pathname;
+      const isLoginPage = currentPath.includes('/login') || currentPath === '/';
+      
+      if (!isLoginPage) {
+        // Unauthorized - clear token and redirect to login (only if not already on login page)
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }

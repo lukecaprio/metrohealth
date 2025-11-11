@@ -17,8 +17,10 @@ const StaffDashboard: React.FC = () => {
   const { user, logout } = useAuth();
 
   const { data: dashboard, isLoading } = useQuery({
-    queryKey: ['staffDashboard'],
+    queryKey: ['staffDashboard', user?.id], // Include user ID in query key
     queryFn: staffApi.getDashboard,
+    enabled: !!user?.id, // Only fetch when user is loaded
+    staleTime: 0, // Always refetch when user changes
   });
 
   if (isLoading) return <Loading />;

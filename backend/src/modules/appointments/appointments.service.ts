@@ -267,12 +267,16 @@ export class AppointmentsService {
     }
 
     // Get appointments for this staff member
+    // Use start of today to avoid timezone issues with date comparison
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     const appointments = await this.prisma.appointment.findMany({
       where: {
         staffId: user.staff.id,
         status: { in: ['SCHEDULED', 'CONFIRMED'] },
         dateTime: {
-          gte: new Date(), // Only future appointments
+          gte: startOfToday, // Only future appointments (from start of today)
         },
       },
       include: {
@@ -298,13 +302,21 @@ export class AppointmentsService {
       type: apt.type,
       status: apt.status,
       notes: apt.notes,
-      patient: {
-        id: apt.patient.id,
-        name: apt.patient.user.name,
-        email: apt.patient.user.email,
-        roomNumber: apt.patient.roomNumber,
-        status: apt.patient.status,
-      },
+      patient: apt.patient?.user
+        ? {
+            id: apt.patient.id,
+            name: apt.patient.user.name,
+            email: apt.patient.user.email,
+            roomNumber: apt.patient.roomNumber || 'N/A',
+            status: apt.patient.status,
+          }
+        : {
+            id: apt.patient?.id || 'unknown',
+            name: 'Unknown Patient',
+            email: 'N/A',
+            roomNumber: 'N/A',
+            status: 'STABLE',
+          },
     }));
   }
 

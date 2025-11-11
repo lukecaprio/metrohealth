@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { queryClient } from '../lib/queryClient';
 import type { User } from '../types/index';
 
 interface AuthContextType {
@@ -27,6 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (newToken: string, newUser: User) => {
+    // Clear all React Query cache when logging in as a different user
+    queryClient.clear();
+    
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
@@ -34,6 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Clear all React Query cache on logout
+    queryClient.clear();
+    
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
